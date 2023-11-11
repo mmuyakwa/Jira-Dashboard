@@ -1,7 +1,7 @@
 # Jira-Dashboard
 
 ## Overview
-This Flask application serves as a dashboard to display Jira tickets assigned to team members. It updates the ticket information every 5 minutes and sorts them by the date of assignment.
+This Flask application serves as a dashboard to display Jira tickets assigned to team members. It updates the ticket information every 5 minutes and sorts them by the date of the newest update descending.
 
 ## Features
 - Displays a list of Jira tickets assigned to each team member.
