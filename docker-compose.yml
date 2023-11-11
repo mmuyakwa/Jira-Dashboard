@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  web:
+  jira-dashboard:
     container_name: jira-dashboard
     hostname: jira-dashboard
     build: ./app
