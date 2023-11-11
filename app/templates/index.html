@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Show Team Tickets</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Team Tickets</h1>
+    <div class="container">
+        <table class="striped highlight">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>URL</th>
+                    <th>Title</th>
+                    <!-- <th>Assigned at</th> -->
+                    <th>Updated at</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for email, ticket in tickets %}
+                <tr>
+                    <td>{{ email }}</td>
+                    <td><a href="{{ ticket['url'] }}">{{ ticket['url'] }}</a></td>
+                    <td>{{ ticket['title'] }}</td>
+                    <!-- <td>{{ ticket['assigned_date'] }}</td> -->
+                    <td>{{ ticket['updated_date'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</body>
+</html>
