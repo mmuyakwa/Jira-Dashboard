@@ -26,7 +26,7 @@
                 {% for email, ticket in tickets %}
                 <tr>
                     <td>{{ email }}</td>
-                    <td><a href="{{ ticket['url'] }}">{{ ticket['url'] }}</a></td>
+                    <td><a href="{{ ticket['url'] }}" target="_blank">{{ ticket['url'] }}</a></td>
                     <td>{{ ticket['title'] }}</td>
                     <!-- <td>{{ ticket['assigned_date'] }}</td> -->
                     <td>{{ ticket['updated_date'] }}</td>
