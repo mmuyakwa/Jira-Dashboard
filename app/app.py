@@ -67,4 +67,4 @@ def index():
     return render_template('index.html', tickets=sorted_tickets)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
