@@ -41,6 +41,7 @@ def update_tickets():
                     'url': issue.permalink(),
                     'email': member,
                     'title': issue.fields.summary,
+                    'priority': issue.fields.priority.name,
                     'assigned_date': get_date(issue.fields.created), #'assigned_date': issue.fields.created
                     'updated_date': get_date(issue.fields.updated) #'updated_date': issue.fields.updated
                 }
