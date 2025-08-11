@@ -1,0 +1,106 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request_target:
+  workflow_run:
+    workflows: ["Auto approve", "Dependency Review"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot-automerge:
+    runs-on: ubuntu-latest
+    if: |
+      github.actor == 'dependabot[bot]' &&
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - name: Get PR details
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            pr_number=$(gh api "/repos/${{ github.repository }}/pulls" \
+              --jq '.[] | select(.head.sha == "${{ github.event.workflow_run.head_sha }}") | .number')
+          else
+            pr_number=${{ github.event.pull_request.number }}
+          fi
+          
+          echo "number=$pr_number" >> $GITHUB_OUTPUT
+          
+          # Get PR details
+          pr_data=$(gh api "/repos/${{ github.repository }}/pulls/$pr_number")
+          echo "head_sha=$(echo "$pr_data" | jq -r '.head.sha')" >> $GITHUB_OUTPUT
+          echo "mergeable=$(echo "$pr_data" | jq -r '.mergeable')" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check if PR is approved and ready
+        id: check-ready
+        run: |
+          pr_number=${{ steps.pr.outputs.number }}
+          
+          # Check approvals
+          approvals=$(gh api "/repos/${{ github.repository }}/pulls/$pr_number/reviews" \
+            --jq '[.[] | select(.state == "APPROVED")] | length')
+          
+          # Check status checks
+          checks=$(gh api "/repos/${{ github.repository }}/commits/${{ steps.pr.outputs.head_sha }}/check-runs" \
+            --jq '.check_runs[] | select(.conclusion != "success" and .conclusion != "skipped") | length')
+          
+          echo "approvals=$approvals"
+          echo "failed_checks=$checks"
+          echo "mergeable=${{ steps.pr.outputs.mergeable }}"
+          
+          if [ "$approvals" -gt 0 ] && [ "$checks" -eq 0 ] && [ "${{ steps.pr.outputs.mergeable }}" = "true" ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+            echo "PR is ready for auto-merge"
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "PR is not ready for auto-merge"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge patch and minor updates
+        if: |
+          steps.check-ready.outputs.ready == 'true' &&
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+           steps.metadata.outputs.update-type == 'version-update:semver-minor')
+        run: |
+          pr_number=${{ steps.pr.outputs.number }}
+          
+          echo "🤖 Auto-merging Dependabot PR #$pr_number (${UPDATE_TYPE})"
+          gh pr merge $pr_number --merge --delete-branch
+          
+          echo "✅ Successfully merged PR #$pr_number"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+
+      - name: Comment on major updates
+        if: |
+          steps.check-ready.outputs.ready == 'true' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          pr_number=${{ steps.pr.outputs.number }}
+          
+          gh pr comment $pr_number --body "🚨 **Major version update detected!**
+          
+          This PR contains a major version update which might include breaking changes.
+          Please review manually before merging.
+          
+          Update type: \`${{ steps.metadata.outputs.update-type }}\`
+          Package: \`${{ steps.metadata.outputs.dependency-names }}\`"
+          
+          echo "⚠️ Major version update detected for PR #$pr_number. Manual review required."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
